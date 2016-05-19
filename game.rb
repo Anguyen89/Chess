@@ -19,28 +19,39 @@ class Game
   def play_turn
 
     @display.render(@current_player)
-
-    start_pos = current_player.get_input(@display)
-    until @board[start_pos].color == current_player.color
+    begin
       start_pos = current_player.get_input(@display)
-    end
-
-    end_pos = current_player.get_input(@display)
-    until @board[start_pos].valid_moves.include?(end_pos)
       end_pos = current_player.get_input(@display)
+
+      piece = @board[start_pos]
+
+      if piece.color != current_player.color
+        raise InvalidMoveError, "Thatis not your piece"
+      elsif !piece.valid_moves.include?(end_pos)
+        raise InvalidMoveError, "That is not a valid move"
+      end
+
+    rescue InvalidMoveError => e
+      puts e.message
+      retry
     end
 
     @board.move(start_pos, end_pos)
+    p piece.current_pos
   end
 
   def play
-    until @board.checkmate?(@current_player.color)
+    while true
+      break if game_over?
       play_turn
       switch_player!
     end
     puts "Game Over"
   end
 
+  def game_over?
+    @board.checkmate?(@current_player.color)
+  end
 
 end
 

@@ -33,37 +33,30 @@ class Board
   end
 
   def move(start_pos, end_pos)
-    if self[start_pos].valid_moves.include?(end_pos)
-      self[end_pos] = self[start_pos]
-      self[start_pos] = EmptySpace.new
-    else
-      raise InvalidMoveError, "That is not a valid move"
-    end
-  rescue InvalidMoveError => e
-    puts e.message
+    piece = self[start_pos]
+    self[start_pos] = EmptySpace.new
+    piece.current_pos = end_pos
+    self[end_pos] = piece
+
+
   end
 
   def in_check?(color)
-    king = find_king(color)
-    opponent_pieces = []
+    king_pos = find_king(color).current_pos
 
-    rows.each do |row|
-      opponent_pieces += row.select { |piece| piece.is_a?(Piece) && piece.color != color }
-    end
-
-    opponent_pieces.any? do |piece|
-      piece.moves.include?(king.current_pos)
+    pieces.any? do |piece|
+      piece.color != color && piece.moves.include?(king_pos)
     end
   end
 
+  def pieces
+    rows.flatten.reject { |piece| piece.is_a?(EmptySpace) }
+  end
+
   def checkmate?(color)
-
-    our_pieces = []
-    rows.each do |row|
-      our_pieces += row.select { |piece| piece.is_a?(Piece) && piece.color == color }
-    end
-
-    self.in_check?(color) && our_pieces.all? { |piece| piece.valid_moves.empty? }
+    return false unless self.in_check?(color)
+    our_pieces = pieces.reject { |piece| piece.color != color}
+    our_pieces.all? { |piece| piece.valid_moves.empty? }
   end
 
   def dup
@@ -74,14 +67,18 @@ class Board
     new_board
   end
 
-  def move!(start_pos,end_pos)
-    self[end_pos] = self[start_pos]
+  def move!(start_pos, end_pos)
+    piece = self[start_pos]
+    self[end_pos] = piece
+    piece.current_pos = end_pos
     self[start_pos] = EmptySpace.new
   end
 
   private
 
-
+  def update_pos(piece, new_pos)
+    piece.current_pos = new_pos
+  end
 
   def pieces_on_board
       pieces = []
@@ -167,8 +164,6 @@ class Board
     end
   end
 
-
-
   def rows
     @grid
   end
@@ -183,12 +178,3 @@ class Board
     king
   end
 end
-
-board = Board.new(false)
-white_knight = Knight.new(board, [2,2], :white)
-black_knight = Knight.new(board, [3,0], :black)
-
-board[[2,2]] = white_knight
-board[[3,0]] = black_knight
-
-p white_knight.moves
